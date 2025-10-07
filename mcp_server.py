@@ -12,7 +12,7 @@ import httpx
 from mcp.server.fastmcp import FastMCP
 
 
-DEFAULT_BASE_URL = "http://127.0.0.1:5000"
+DEFAULT_BASE_URL = "http://whoogle-search:5000"
 SEARCH_PATH = "/search"
 
 mcp = FastMCP("whoogle-web-search")

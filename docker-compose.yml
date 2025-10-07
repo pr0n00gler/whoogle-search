@@ -3,6 +3,14 @@
 version: "2.4"
 
 services:
+  mcp-server:
+    container_name: whoogle-search-mcp
+    ports:
+      - 8000:8000
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    restart: unless-stopped
   whoogle-search:
     image: ${WHOOGLE_IMAGE:-benbusby/whoogle-search}
     container_name: whoogle-search
@@ -46,4 +54,4 @@ services:
     #env_file: # Alternatively, load variables from whoogle.env
       #- whoogle.env
     ports:
-      - 5000:5000
+      - 5001:5000
