@@ -35,7 +35,11 @@ async def _perform_search(query: str, *, timeout: float = 10.0) -> Dict[str, Any
 
 @mcp.tool()
 async def web_search(query: str) -> str:
-    """Run a web search against the Whoogle instance."""
+    """
+        Search the web and get the content of the relevant pages. Search for unknown knowledge, news, info, public contact info, weather, etc.
+        :params query: Web Query used in search engine.
+        :return: The content of the pages in json format.
+        """
     if not query or not query.strip():
         raise ValueError("The search query must not be empty.")
 
