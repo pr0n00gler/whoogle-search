@@ -23,7 +23,8 @@ from mcp.server.fastmcp import FastMCP
 
 DEFAULT_BASE_URL = "http://whoogle-search:5000"
 SEARCH_PATH = "/search"
-PAGE_CONTENT_WORDS_LIMIT = 5000
+PAGE_CONTENT_WORDS_LIMIT = 1000
+MAX_LINKS_IN_RESPONSE = 3
 
 HEADERS = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
@@ -163,6 +164,12 @@ async def web_search(query: str) -> str:
         raise ValueError("The search query must not be empty.")
 
     payload = await _perform_search(query.strip())
+    n = min(len(payload["results"]), MAX_LINKS_IN_RESPONSE)
+    for i in range(0, n):
+        content = json.loads(await get_website(payload["results"][i]["href"]))[0]["content"]
+        payload["results"][i]["text"] = content
+        del payload["results"][i]["content"]
+
     return json.dumps(payload, indent=2, ensure_ascii=False)
 
 
