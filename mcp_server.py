@@ -170,7 +170,7 @@ async def web_search(query: str) -> str:
         payload["results"][i]["text"] = content
         del payload["results"][i]["content"]
 
-    return json.dumps(payload, indent=2, ensure_ascii=False)
+    return json.dumps(payload[0:n], indent=2, ensure_ascii=False)
 
 
 def main() -> None:
