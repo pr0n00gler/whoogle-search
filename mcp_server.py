@@ -169,8 +169,9 @@ async def web_search(query: str) -> str:
         content = json.loads(await get_website(payload["results"][i]["href"]))[0]["content"]
         payload["results"][i]["text"] = content
         del payload["results"][i]["content"]
+    payload["results"] = payload["results"][0:n]
 
-    return json.dumps(payload[0:n], indent=2, ensure_ascii=False)
+    return json.dumps(payload, indent=2, ensure_ascii=False)
 
 
 def main() -> None:
