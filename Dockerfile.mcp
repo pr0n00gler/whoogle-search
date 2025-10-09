@@ -5,5 +5,7 @@ COPY mcp_server.py .
 COPY pyproject.toml .
 RUN pip install -r requirements.txt
 RUN pip install mcpo uv
+ARG API_KEY
+ENV API_KEY=$API_KEY
 
-CMD ["uvx", "mcpo", "--host", "0.0.0.0", "--port", "8000", "--", "uv", "run", "mcp_server.py"]
+CMD uvx mcpo --host 0.0.0.0 --port 8000 --api-key $API_KEY -- uv run mcp_server.py

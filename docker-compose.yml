@@ -8,6 +8,8 @@ services:
     ports:
       - 8000:8000
     build:
+      args:
+        API_KEY: <API_KEY>
       context: .
       dockerfile: Dockerfile.mcp
     restart: unless-stopped
