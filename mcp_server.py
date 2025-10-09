@@ -27,7 +27,7 @@ PAGE_CONTENT_WORDS_LIMIT = 1000
 MAX_LINKS_IN_RESPONSE = 3
 
 HEADERS = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.6668.100 Safari/537.36"
         }
 
 class HelpFunctions:
