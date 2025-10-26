@@ -25,12 +25,17 @@ from tavily import TavilyClient
 
 DEFAULT_BASE_URL = "http://whoogle-search:5000"
 SEARCH_PATH = "/search"
-PAGE_CONTENT_WORDS_LIMIT = 1000
-MAX_LINKS_IN_RESPONSE = 3
+PAGE_CONTENT_WORDS_LIMIT = 5000
+MAX_LINKS_IN_RESPONSE = 5
 
 HEADERS = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.6668.100 Safari/537.36"
         }
+
+def truncate_to_n_words(text, token_limit):
+    tokens = text.split()
+    truncated_tokens = tokens[:token_limit]
+    return " ".join(truncated_tokens)
 
 mcp = FastMCP("whoogle-web-search")
 
@@ -62,7 +67,7 @@ async def get_website(url: str) -> str:
         if len(response["failed_results"]) > 0:
             return response["failed_results"][0]["error"]
 
-        return response["results"][0]["raw_content"]
+        return truncate_to_n_words(response["results"][0]["raw_content"], PAGE_CONTENT_WORDS_LIMIT)
 
 
 @mcp.tool()
@@ -76,6 +81,7 @@ async def web_search(query: str) -> str:
         raise ValueError("The search query must not be empty.")
 
     payload = await _perform_search(query.strip())
+    payload["results"] = filter(lambda r: "reddit.com" not in r["href"], payload["results"])
     n = min(len(payload["results"]), MAX_LINKS_IN_RESPONSE)
     for i in range(0, n):
         content = await get_website(payload["results"][i]["href"])
