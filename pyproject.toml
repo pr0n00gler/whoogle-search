@@ -1,6 +1,9 @@
 [project]
 name = "whoogle"
 version = "0.1.0"
+dependencies = [
+    "tavily-python>=0.7.12",
+]
 
 [tool.ruff]
 line-length = 100
