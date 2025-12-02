@@ -1,12 +1,10 @@
 >[!WARNING]
 >
->**Mullvad Leta Backend Now Available!**
+>Since 16 January, 2025, Google has been attacking the ability to perform search queries without JavaScript enabled. This is a fundamental part of how Whoogle
+>works -- Whoogle requests the JavaScript-free search results, then filters out garbage from the results page and proxies all external content for the user.
 >
->As of 16 January, 2025, Google seemingly no longer supports performing search queries without JavaScript enabled. We have made multiple workarounds, but as of 2 October 2025, Google has killed off all remaining methods we had to retrieve results from them originally. While we work to rebuild and hopefully find new ways to continue on, we have released a stopgap which uses [Mullvad Leta](https://leta.mullvad.net) (an alternative privacy-focused search backend) as the default (but disable-able) backend leveraging their Google results. 
->
->**Leta is now enabled by default**. It provides anonymous search results through Mullvad's infrastructure without requiring JavaScript. While Leta doesn't support image, video, news, or map searches, it provides privacy-focused web search results.
->
->To switch back to Google (if it becomes available again), you can disable Leta in the config settings or set `WHOOGLE_CONFIG_USE_LETA=0` in your environment variables. See [LETA_INTEGRATION.md](LETA_INTEGRATION.md) for more details.
+>This is possibly a breaking change that may mean the end for Whoogle. We'll continue fighting back and releasing workarounds until all workarounds are 
+>exhausted or a better method is found. If you know of a better way, please review and comment in our Way Forward Discussion
 
 ___
 
@@ -58,7 +56,6 @@ Contents
 10. [Screenshots](#screenshots)
 
 ## Features
-- **Mullvad Leta backend support** - Privacy-focused alternative to Google (enabled by default)
 - No ads or sponsored content
 - No JavaScript\*
 - No cookies\*\*
@@ -71,7 +68,12 @@ Contents
 - POST request search and suggestion queries (when possible)
 - View images at full res without site redirect (currently mobile only)
 - Light/Dark/System theme modes (with support for [custom CSS theming](https://github.com/benbusby/whoogle-search/wiki/User-Contributed-CSS-Themes))
-- Randomly generated User Agent
+- Auto-generated Opera User Agents with random rotation
+  - 10 unique Opera-based UAs generated on startup from 115 language variants
+  - Randomly rotated for each search request to avoid detection patterns
+  - Cached across restarts with configurable refresh options
+  - Fallback to safe default UA if generation fails
+  - Optional display of current UA in search results footer
 - Easy to install/deploy
 - DDG-style bang (i.e. `!<tag> <query>`) searches
 - User-defined [custom bangs](#custom-bangs)
@@ -86,6 +88,17 @@ Contents
 <sup>***If deployed to a remote server, or configured to send requests through a VPN, Tor, proxy, etc.</sup>
 
 ## Install
+
+### Supported Platforms
+Official Docker images are built for:
+- **linux/amd64** (x86_64)
+- **linux/arm64** (ARM 64-bit, Raspberry Pi 3/4/5, Apple Silicon)
+
+**Note**: ARMv7 support (32-bit ARM, Raspberry Pi 2) was dropped in v1.2.0 due to incompatibility with modern security libraries on Alpine Linux. Users with ARMv7 devices can either:
+- Use an older version (v1.1.x or earlier)
+- Build locally with pinned dependencies (see notes in Dockerfile)
+- Upgrade to a 64-bit OS if hardware supports it (Raspberry Pi 3+)
+
 There are a few different ways to begin using the app, depending on your preferences:
 
 ___
@@ -440,9 +453,12 @@ There are a few optional environment variables available for customizing a Whoog
 | WHOOGLE_PROXY_PASS   | The password of the proxy server.                                                         |
 | WHOOGLE_PROXY_TYPE   | The type of the proxy server. Can be "socks5", "socks4", or "http".                       |
 | WHOOGLE_PROXY_LOC    | The location of the proxy server (host or ip).                                            |
-| WHOOGLE_USER_AGENT   | The desktop user agent to use. Defaults to a randomly generated one.                      |
-| WHOOGLE_USER_AGENT_MOBILE | The mobile user agent to use. Defaults to a randomly generated one.                  |
+| WHOOGLE_USER_AGENT   | The desktop user agent to use when using 'env_conf' option. Leave empty to use auto-generated Opera UAs. |
+| WHOOGLE_USER_AGENT_MOBILE | The mobile user agent to use when using 'env_conf' option. Leave empty to use auto-generated Opera UAs. |
 | WHOOGLE_USE_CLIENT_USER_AGENT | Enable to use your own user agent for all requests. Defaults to false.           |
+| WHOOGLE_UA_CACHE_PERSISTENT | Whether to persist auto-generated UAs across restarts. Set to '0' to regenerate on each startup. Default '1'. |
+| WHOOGLE_UA_CACHE_REFRESH_DAYS | Auto-refresh UA cache after N days. Set to '0' to never refresh (cache persists indefinitely). Default '0'. |
+| WHOOGLE_UA_LIST_FILE | Path to text file containing custom UA strings (one per line). When set, uses these instead of auto-generated UAs. |
 | WHOOGLE_REDIRECTS    | Specify sites that should be redirected elsewhere. See [custom redirecting](#custom-redirecting). |
 | EXPOSE_PORT          | The port where Whoogle will be exposed.                                                   |
 | HTTPS_ONLY           | Enforce HTTPS. (See [here](https://github.com/benbusby/whoogle-search#https-enforcement)) |
@@ -494,7 +510,7 @@ These environment variables allow setting default config values, but can be over
 | WHOOGLE_CONFIG_PREFERENCES_ENCRYPTED | Encrypt preferences token, requires preferences key             |
 | WHOOGLE_CONFIG_PREFERENCES_KEY       | Key to encrypt preferences in URL (REQUIRED to show url)        |
 | WHOOGLE_CONFIG_ANON_VIEW             | Include the "anonymous view" option for each search result      |
-| WHOOGLE_CONFIG_USE_LETA              | Use Mullvad Leta as search backend (default: enabled). Set to 0 to use Google instead |
+| WHOOGLE_CONFIG_SHOW_USER_AGENT       | Display the User Agent string used for search in results footer |
 
 ## Usage
 Same as most search engines, with the exception of filtering by time range.
@@ -666,6 +682,140 @@ Whoogle can optionally serve a single bundled CSS and JS to reduce the number of
 - When disabled (default), templates load individual CSS/JS files for easier development.
 - Note: Theme CSS (`*-theme.css`) are still loaded separately to honor user theme selection.
 
+## User Agent Generator Tool
+
+A standalone command-line tool is available for generating Opera User Agent strings on demand:
+
+```bash
+# Generate 10 User Agent strings (default)
+python misc/generate_uas.py
+
+# Generate custom number of UAs
+python misc/generate_uas.py 20
+```
+
+This tool is useful for:
+- Testing different UA strings
+- Generating UAs for other projects
+- Verifying UA generation patterns
+- Debugging UA-related issues
+
+## Using Custom User Agent Lists
+
+Instead of using auto-generated Opera UA strings, you can provide your own list of User Agent strings for Whoogle to use.
+
+### Setup
+
+1. Create a text file with your preferred UA strings (one per line):
+
+```
+Opera/9.80 (J2ME/MIDP; Opera Mini/4.2.13337/22.478; U; en) Presto/2.4.15 Version/10.00
+Opera/9.80 (Android; Linux; Opera Mobi/498; U; en) Presto/2.12.423 Version/10.1
+```
+
+2. Set the `WHOOGLE_UA_LIST_FILE` environment variable to point to your file:
+
+```bash
+# Docker
+docker run -e WHOOGLE_UA_LIST_FILE=/config/my_user_agents.txt ...
+
+# Docker Compose
+environment:
+  - WHOOGLE_UA_LIST_FILE=/config/my_user_agents.txt
+
+# Manual/systemd
+export WHOOGLE_UA_LIST_FILE=/path/to/my_user_agents.txt
+```
+
+### Priority Order
+
+Whoogle uses the following priority when loading User Agent strings:
+
+1. **Custom UA list file** (if `WHOOGLE_UA_LIST_FILE` is set and valid)
+2. **Cached auto-generated UAs** (if cache exists and is valid)
+3. **Newly generated UAs** (if no cache or cache expired)
+
+### Tips
+
+- You can use the output from `misc/check_google_user_agents.py` as your custom UA list
+- Generate a list with `python misc/generate_uas.py 50 2>/dev/null > my_uas.txt`
+- Mix different UA types (Opera, Firefox, Chrome) for more variety
+- Keep the file readable by Whoogle (proper permissions)
+- One UA string per line, blank lines are ignored
+
+### Example Workflow
+
+```bash
+# Generate and test UAs, save working ones
+python misc/generate_uas.py 100 2>/dev/null > candidate_uas.txt
+python misc/check_google_user_agents.py candidate_uas.txt --output working_uas.txt
+
+# Use the working UAs with Whoogle
+export WHOOGLE_UA_LIST_FILE=./working_uas.txt
+./run
+```
+
+## User Agent Testing Tool
+
+Whoogle now includes a comprehensive testing tool (`misc/check_google_user_agents.py`) to verify which User Agent strings successfully return Google search results without triggering blocks, JavaScript-only pages, or browser upgrade prompts.
+
+### Usage
+
+```bash
+# Test all UAs from a file
+python misc/check_google_user_agents.py UAs.txt
+
+# Save working UAs to a file (appends incrementally)
+python misc/check_google_user_agents.py UAs.txt --output working_uas.txt
+
+# Use a specific search query
+python misc/check_google_user_agents.py UAs.txt --query "python programming"
+
+# Verbose mode to see detailed results
+python misc/check_google_user_agents.py UAs.txt --output working.txt --verbose
+
+# Adjust delay between requests (default: 0.5 seconds)
+python misc/check_google_user_agents.py UAs.txt --delay 1.0
+
+# Set request timeout (default: 10 seconds)
+python misc/check_google_user_agents.py UAs.txt --timeout 15.0
+```
+
+### Features
+
+- **Incremental Results**: Working UAs are saved immediately to the output file (append mode), so progress is preserved even if interrupted
+- **Duplicate Detection**: Automatically skips UAs already in the output file when resuming
+- **Random Query Cycling**: By default, cycles through diverse search queries to simulate realistic usage patterns
+- **Rate Limit Detection**: Detects and reports Google rate limiting with recovery instructions
+- **Comprehensive Validation**: Checks for:
+  - HTTP status codes (blocks, server errors, rate limits)
+  - Block markers (unusual traffic, upgrade browser messages)
+  - Success markers (actual search result HTML elements)
+  - JavaScript-only pages and redirects
+  - Response size validation
+
+### Testing Methodology
+
+The tool evaluates UAs against multiple criteria:
+
+1. **HTTP Status**: Rejects 4xx/5xx errors, detects 429 rate limits
+2. **Block Detection**: Searches for Google's block messages (CAPTCHA, unusual traffic, etc.)
+3. **JavaScript Detection**: Identifies JS-only pages and noscript redirects
+4. **Result Validation**: Confirms presence of actual search result HTML elements
+5. **Content Analysis**: Validates response size and structure
+
+This tool was used to discover and validate the working Opera UA patterns that power Whoogle's auto-generation feature.
+
+## Known Issues
+
+### User Agent Strings and Image Search
+
+**Issue**: Most, if not all, of the auto-generated Opera User Agent strings may fail when performing **image searches** on Google. This appears to be a limitation with how Google's image search validates User Agent strings.
+
+**Impact**:
+- Regular web searches work correctly with generated UAs
+- Image search may return errors or no results
+
 ## Contributing
 
 Under the hood, Whoogle is a basic Flask app with the following structure:
@@ -679,6 +829,7 @@ Under the hood, Whoogle is a basic Flask app with the following structure:
     - `results.py`: Utility functions for interpreting/modifying individual search results
     - `search.py`: Creates and handles new search queries
     - `session.py`: Miscellaneous methods related to user sessions
+    - `ua_generator.py`: Auto-generates Opera User Agent strings with pattern-based randomization
   - `templates/`
     - `index.html`: The home page template
     - `display.html`: The search results template
@@ -717,20 +868,6 @@ def contains(x: list, y: int) -> bool:
 Whoogle currently supports translations using [`translations.json`](https://github.com/benbusby/whoogle-search/blob/main/app/static/settings/translations.json). Language values in this file need to match the "value" of the according language in [`languages.json`](https://github.com/benbusby/whoogle-search/blob/main/app/static/settings/languages.json) (i.e. "lang_en" for English, "lang_es" for Spanish, etc). After you add a new set of translations to `translations.json`, open a PR with your changes and they will be merged in as soon as possible.
 
 ## FAQ
-
-**What is Mullvad Leta and why is it the default?**
-
-Mullvad Leta is a privacy-focused search service provided by [Mullvad VPN](https://mullvad.net/en/leta). As of January 2025, Google disabled JavaScript-free search results, which breaks Whoogle's core functionality. Leta provides an excellent alternative that:
-
-- Doesn't require JavaScript
-- Provides privacy-focused search results through Mullvad's infrastructure
-- Uses Google's search index (so results are similar to what you'd expect)
-- Doesn't track or log your searches
-
-**Limitations:** Leta only supports regular web search - no images, videos, news, or maps. If you need these features and Google's JavaScript-free search becomes available again, you can disable Leta in settings or set `WHOOGLE_CONFIG_USE_LETA=0`.
-
-For more details, see [LETA_INTEGRATION.md](LETA_INTEGRATION.md).
-
 **What's the difference between this and [Searx](https://github.com/asciimoo/searx)?**
 
 Whoogle is intended to only ever be deployed to private instances by individuals of any background, with as little effort as possible. Prior knowledge of/experience with the command line or deploying applications is not necessary to deploy Whoogle, which isn't the case with Searx. As a result, Whoogle is missing some features of Searx in order to be as easy to deploy as possible.
@@ -750,12 +887,8 @@ A lot of the app currently piggybacks on Google's existing support for fetching 
 | Website | Country | Language | Cloudflare |
 |-|-|-|-|
 | [https://search.garudalinux.org](https://search.garudalinux.org) | 🇫🇮 FI | Multi-choice | ✅ |
-| [https://search.sethforprivacy.com](https://search.sethforprivacy.com) | 🇩🇪 DE | English | |
 | [https://whoogle.privacydev.net](https://whoogle.privacydev.net) | 🇫🇷 FR | English | |
-| [https://wg.vern.cc](https://wg.vern.cc) | 🇺🇸 US | English |  |
 | [https://whoogle.lunar.icu](https://whoogle.lunar.icu) | 🇩🇪 DE | Multi-choice | ✅ |
-| [https://whoogle.4040940.xyz/](https://whoogle.4040940.xyz/) | 🇺🇸 US | English | ✅ |
-
 
 
 * A checkmark in the "Cloudflare" category here refers to the use of the reverse proxy, [Cloudflare](https://cloudflare.com). The checkmark will not be listed for a site which uses Cloudflare DNS but rather the proxying service which grants Cloudflare the ability to monitor traffic to the website.
@@ -764,17 +897,7 @@ A lot of the app currently piggybacks on Google's existing support for fetching 
 
 | Website | Country | Language |
 |-|-|-|
-| [http://whoglqjdkgt2an4tdepberwqz3hk7tjo4kqgdnuj77rt7nshw2xqhqad.onion](http://whoglqjdkgt2an4tdepberwqz3hk7tjo4kqgdnuj77rt7nshw2xqhqad.onion) | 🇺🇸 US |  Multi-choice
-| [http://nuifgsnbb2mcyza74o7illtqmuaqbwu4flam3cdmsrnudwcmkqur37qd.onion](http://nuifgsnbb2mcyza74o7illtqmuaqbwu4flam3cdmsrnudwcmkqur37qd.onion) | 🇩🇪 DE |  English
-| [http://whoogle.vernccvbvyi5qhfzyqengccj7lkove6bjot2xhh5kajhwvidqafczrad.onion](http://whoogle.vernccvbvyi5qhfzyqengccj7lkove6bjot2xhh5kajhwvidqafczrad.onion/) | 🇺🇸 US | English |
-| [http://whoogle.g4c3eya4clenolymqbpgwz3q3tawoxw56yhzk4vugqrl6dtu3ejvhjid.onion](http://whoogle.g4c3eya4clenolymqbpgwz3q3tawoxw56yhzk4vugqrl6dtu3ejvhjid.onion/) | 🇫🇷 FR | English |
-| [http://whoogle.daturab6drmkhyeia4ch5gvfc2f3wgo6bhjrv3pz6n7kxmvoznlkq4yd.onion](http://whoogle.daturab6drmkhyeia4ch5gvfc2f3wgo6bhjrv3pz6n7kxmvoznlkq4yd.onion/) | 🇩🇪 DE | Multi-choice | |
-
-#### I2P Instances
-
-| Website | Country | Language |
-|-|-|-|
-| [http://verneks7rfjptpz5fpii7n7nrxilsidi2qxepeuuf66c3tsf4nhq.b32.i2p](http://verneks7rfjptpz5fpii7n7nrxilsidi2qxepeuuf66c3tsf4nhq.b32.i2p) | 🇺🇸 US | English |
+NONE of the existing Onion accessible sites appear to be live anymore
 
 ## Screenshots
 #### Desktop

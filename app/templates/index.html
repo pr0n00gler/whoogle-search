@@ -41,8 +41,6 @@
         {% else %}
             <link rel="stylesheet" href="{{ cb_url(config.theme + '-theme.css') }}"/>
         {% endif %}
-    {% else %}
-        <link rel="stylesheet" href="{{ cb_url(('dark' if config.dark else 'light') + '-theme.css') }}"/>
     {% endif %}
     {% if not bundle_static() %}
         <link rel="stylesheet" href="{{ cb_url('main.css') }}">
@@ -204,10 +202,6 @@
                             </select>
                         </div>
                         <!-- DEPRECATED -->
-                        <!--<div class="config-div config-div-dark">-->
-                        <!--<label for="config-dark">{{ translation['config-dark'] }}: </label>-->
-                        <!--<input type="checkbox" name="dark" id="config-dark" {{ 'checked' if config.dark else '' }}>-->
-                        <!--</div>-->
                         <div class="config-div config-div-safe">
                             <label for="config-safe">{{ translation['config-safe'] }}: </label>
                             <input type="checkbox" name="safe" id="config-safe" {{ 'checked' if config.safe else '' }}>
@@ -263,6 +257,11 @@
                             <label for="config-accept-language">Set Accept-Language: </label>
                             <input type="checkbox" name="accept_language"
                                    id="config-accept-language" {{ 'checked' if config.accept_language else '' }}>
+                        </div>
+                        <div class="config-div config-div-show-user-agent">
+                            <label for="config-show-user-agent">Show User Agent in Footer: </label>
+                            <input type="checkbox" name="show_user_agent"
+                                   id="config-show-user-agent" {{ 'checked' if config.show_user_agent else '' }}>
                         </div>
                         <div class="config-div config-div-root-url">
                             <label for="config-url">{{ translation['config-url'] }}: </label>
